@@ -28,29 +28,30 @@ def resize_image_to_specific_size(image):
 
 # Dilation
 def dilate(image, x, y):
-    kernel = np.ones((x,y),np.uint8)
+    kernel = np.ones((x, y),np.uint8)
     return cv2.dilate(image, kernel, iterations = 1)
     
 # Erosion
 def erode(image, x, y):
-    kernel = np.ones((x,y),np.uint8)
+    kernel = np.ones((x, y),np.uint8)
     return cv2.erode(image, kernel, iterations = 1)
 
 # Opening - erosion followed by dilation
-def openingas(image, x, y):
-    kernel = np.ones((x,y),np.uint8)
+def opening_op(image, x, y):
+    kernel = np.ones((x, y),np.uint8)
     return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
 # Closing - dilation followed by erosion
-def closingas(image, x, y):
-    kernel = np.ones((x,y),np.uint8)
+def closing_op(image, x, y):
+    kernel = np.ones((x, y),np.uint8)
     return cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
 def top_hat(image):
-    kernel = np.ones((5,5),np.uint8)
+    kernel = np.ones((5, 5),np.uint8)
     return cv2.morphologyEx(image, cv2.MORPH_TOPHAT, kernel)
 
 def black_hat(image):
-    kernel = np.ones((31,31),np.uint8)
+    kernel = np.ones((31, 31),np.uint8)
     return cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, kernel)
 
 # Morphological operations END #
@@ -89,29 +90,30 @@ def contour_search_v1(gray, image):
         
         # Masking the part other than the number plate
         mask = np.zeros(gray.shape,np.uint8)
-        new_image = cv2.drawContours(mask,[screenCnt],0,255,-1,)
-        new_image = cv2.bitwise_and(image,image,mask=mask)
+        new_image = cv2.drawContours(mask, [screenCnt], 0, 255, -1,)
+        new_image = cv2.bitwise_and(image, image, mask = mask)
 
         # Now crop
         (x, y) = np.where(mask == 255)
         (topx, topy) = (np.min(x), np.min(y))
         (bottomx, bottomy) = (np.max(x), np.max(y))
-        Cropped = gray[topx:bottomx+1, topy:bottomy+1]
+        Cropped = gray[topx:bottomx + 1, topy:bottomy + 1]
         
         return Cropped
     
 def contour_search_v2(image):
     cnts = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    cnts, _ = contours.sort_contours(cnts, method="left-to-right")
+    cnts, _ = contours.sort_contours(cnts, method = "left-to-right")
 
 
     for c in cnts:
         area = cv2.contourArea(c)
-        x,y,w,h = cv2.boundingRect(c)
-        center_y = y + h/2
+        x, y, w, h = cv2.boundingRect(c)
+        center_y = y + h / 2
         if area > 3000 and (w > h):
-            ROI = image[y:y+h, x:x+w]
+            ROI = image[y: y + h, x: x + w]
+            #ROI += image[y:y+h, x:x+w]
             #data = pytesseract.image_to_string(ROI, lang='eng', config='--oem 1 --psm 13')
             #data = pytesseract.image_to_string(ROI, config='-l eng --oem 1 --psm 13 tessedit_write_images=true -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
             plate = ROI
@@ -131,97 +133,83 @@ def get_text_from_image(image):
 def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussian_blur, median_blur, canny_x, canny_y, dilation, opening, closing, erosion, binarization, canny_after_mo, contour_search):
     
     
-    # /*** 1. Image resizing ***/
+    # 1. Image resizing
     if image_resizing == 1:
         image = cv2.resize(image, (620, 480))
     elif image_resizing == 2:
         image = cv2.resize(image, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     else:
         image = imutils.resize(image, width=500)
-        
-        
     
-    # /*** 2. Photo conversion from colored to gray ***/
+    
+    # 2. Photo conversion from colored to gray
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)    
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
     
-    
-    # /*** 3. If needed apply BLUR filter ***/
+    # 3. If needed apply BLUR filter
     if blur != None:
-        #print ("Taikomas blur")
+        #print ("BLUR FILTER APPLIED")
         image = cv2.blur(image,(blur, blur))
-        
-        
-        
-    # /*** 4. Apply GAUSSIAN BLUR filter ***/
-    image = cv2.GaussianBlur(image, (gaussian_blur, gaussian_blur), 0) 
     
     
+    # 4. Apply GAUSSIAN BLUR filter
+    image = cv2.GaussianBlur(image, (gaussian_blur, gaussian_blur), 0)
     
     
-    # /*** 5. Apply MEDIAN BLUR filter ***/
+    # 5. Apply MEDIAN BLUR filter
     image = cv2.medianBlur(image, median_blur)
     
     
     
-    ########## B. filtras
+    ########## B. filter
     #image = cv2.bilateralFilter(image, 11, 23, 23)
     
     
-    
-    # /*** 6. If needed apply Canny Edge detection (BEFORE morphological operations) ***/
+    # 6. If needed apply CANNY EDGE detection (BEFORE morphological operations)
     if canny_after_mo == False:
         if canny_x != None and canny_y != None:
-            #print ("taikomas canny pries MO")
+            #print ("CANNY EDGE DETECTION APPLIED BEFORE MO")
             image = cv2.Canny(image, canny_x, canny_y)
-            
-            
-        
-    # /*** 7. If needed apply DILATION morphological operation ***/
+    
+    
+    # 7. If needed apply DILATION morphological operation
     image = dilate(image, dilation, dilation)
     
     
-    
-    # /*** 8. If needed apply OPENING morphological operation ***/
+    # 8. If needed apply OPENING morphological operation
     if opening != None:
-        #print ("Taikomas opening")
-        image = openingas(image, opening, opening)
-        
-        
+        #print ("OPENING MO APPLIED")
+        image = opening_op(image, opening, opening)
     
-    # /*** 9. If needed apply CLOSING morphological operation ***/
+    
+    # 9. If needed apply CLOSING morphological operation
     if closing != None:
-        #print ("Taikomas closing")
-        image = closingas(image, closing, closing)
-        
-        
+        #print ("CLOSING MO APPLIED")
+        image = closing_op(image, closing, closing)
     
-    # /*** 10. If needed apply EROSION morphological operation ***/
+    
+    # 10. If needed apply EROSION morphological operation
     if erosion != None:
-        #print ("Taikomas erosion")
+        #print ("EROSION MO APPLIED")
         image = erode(image, erosion, erosion)
-        
-        
-        
-    # /*** 11. If needed apply Canny Edge detection (AFTER morphological operations) ***/
+    
+    
+    # 11. If needed apply CANNY EDGE detection (AFTER morphological operations)
     if canny_after_mo == True:
         if canny_x != None and canny_y != None:
-            #print ("taikomas canny po MO")
+            #print ("CANNY EDGE DETECTION APPLIED AFTER MO")
             image = cv2.Canny(image, canny_x, canny_y)
     
     
-    
-    
-    # /*** 12. If needed apply binarization with THRESHOLD ***/
+    # 12. If needed apply binarization with THRESHOLD
     if binarization == "adaptiveThreshold":
-        image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,2)
+        image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
     elif binarization == "adaptiveThresholdGaussian":
-        image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
-        
-        
+        image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     
-    # /*** 13. Search for contours ***/
+    
+    # 13. Search for contours
     if contour_search == "v1":
         Cropped = contour_search_v1(gray, image)
 
@@ -236,7 +224,7 @@ def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussi
             text = get_text_from_image(Countured)
 
             return text
-        
+
 
 # Main program
 def main():
