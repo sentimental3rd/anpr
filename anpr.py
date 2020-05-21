@@ -10,7 +10,8 @@ from imutils import contours
 #rng.seed(12345)
 
 print(os.getcwd())
-    os.chdir("VISOS")
+    #os.chdir("FOTO/VISOS")
+    os.chdir("FOTO/VISOS/PATIKRA")
 print(os.getcwd())
 
 
@@ -130,7 +131,7 @@ def get_text_from_image(image):
     return text
         
 # Preproccess image with specified method values
-def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussian_blur, median_blur, canny_x, canny_y, dilation, opening, closing, erosion, binarization, canny_after_mo, contour_search):
+def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussian_blur, median_blur, canny_x, canny_y, dilation, opening, closing, erosion, binarization, canny_after_mo, contour_search, program_no):
     
     
     # 1. Image resizing
@@ -210,25 +211,36 @@ def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussi
     
     
     # 13. Search for contours
+    text = None
+    
     if contour_search == "v1":
         Cropped = contour_search_v1(gray, image)
 
         if Cropped is not None:
             text = get_text_from_image(Cropped)
 
-            return text
+            #return text
     else:
         Countured = contour_search_v2(image)
         
         if Countured is not None:
             text = get_text_from_image(Countured)
 
-            return text
+            #return text
+    
+    if text is not None:
+        text = ''.join(e for e in text if e.isalnum())
+        print("{} program response: {}".format(program_no, text))
+        
+        if program_no == 6:
+            print ("---------")
 
 
 # Main program
 def main():
-    for image in glob.glob("*.jpeg"):
+    for image in glob.glob("*.jpg"):
+        print("Filename: {}".format(image))        
+        
         # Read original image from folder
         image = cv2.imread(image)
         
@@ -246,11 +258,9 @@ def main():
                 erosion = None,
                 binarization = None,
                 canny_after_mo = False,
-                contour_search = "v1"
+                contour_search = "v1",
+                program_no = 1
         )
-        
-        print("1 program response:")
-        print(text)
         
         # 2 program
         text = get_text_from_image_after_preproccessing(image,
@@ -266,11 +276,9 @@ def main():
                 erosion = None,
                 binarization = None,
                 canny_after_mo = False,
-                contour_search = "v1"
+                contour_search = "v1",
+                program_no = 2
         )
-        
-        print("2 program response:")
-        print(text)
 
         # 3 program
         text = get_text_from_image_after_preproccessing(image,
@@ -286,11 +294,9 @@ def main():
                 erosion = 5,
                 binarization = None,
                 canny_after_mo = True,
-                contour_search = "v1"
+                contour_search = "v1",
+                program_no = 3
         )
-        
-        print("3 program response:")
-        print(text)
         
         # 4 program
         text = get_text_from_image_after_preproccessing(image,
@@ -306,11 +312,9 @@ def main():
                 erosion = None,
                 binarization = "adaptiveThreshold",
                 canny_after_mo = False,
-                contour_search = "v1"
+                contour_search = "v1",
+                program_no = 4
         )
-        
-        print("4 program response:")
-        print(text)
         
         # 5 program
         text = get_text_from_image_after_preproccessing(image,
@@ -326,11 +330,9 @@ def main():
                 erosion = None,
                 binarization = None,
                 canny_after_mo = False,
-                contour_search = "v1"
+                contour_search = "v1",
+                program_no = 5
         )
-        
-        print("5 program response:")
-        print(text)
         
         # 6 program
         text = get_text_from_image_after_preproccessing(image,
@@ -346,11 +348,9 @@ def main():
                 erosion = None,
                 binarization = "adaptiveThresholdGaussian",
                 canny_after_mo = False,
-                contour_search = "v2"
+                contour_search = "v2",
+                program_no = 6
         )
-        
-        print("6 program response:")
-        print(text)
     
     
 main()
