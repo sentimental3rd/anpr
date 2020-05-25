@@ -1,3 +1,8 @@
+# Vehicle Number Plate Recognition
+# @Author: Jonas Meška
+# @Author email: info@jonasmeska.lt
+# @Creation date: 2020-05-25
+
 import cv2
 import imutils
 import numpy as np
