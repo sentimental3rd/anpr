@@ -6,12 +6,13 @@ from PIL import Image
 import glob, os
 import random as rng
 from imutils import contours
+import boto3 # Amazon Rekognition
 
 #rng.seed(12345)
 
 print(os.getcwd())
     #os.chdir("FOTO/VISOS")
-    os.chdir("FOTO/VISOS/PATIKRA")
+    #os.chdir("FOTO/VISOS/PATIKRA")
 print(os.getcwd())
 
 
@@ -59,7 +60,7 @@ def black_hat(image):
 
 # Contour searches START #
 
-def contour_search_v1(gray, image):
+def contour_search_v1(file, gray, image):
     detected = 0
     
     cnts = cv2.findContours(image.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -131,7 +132,7 @@ def get_text_from_image(image):
     return text
         
 # Preproccess image with specified method values
-def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussian_blur, median_blur, canny_x, canny_y, dilation, opening, closing, erosion, binarization, canny_after_mo, contour_search, program_no):
+def get_text_from_image_after_preproccessing(file, image, image_resizing, blur, gaussian_blur, median_blur, canny_x, canny_y, dilation, opening, closing, erosion, binarization, canny_after_mo, contour_search, program_no):
     
     
     # 1. Image resizing
@@ -155,11 +156,15 @@ def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussi
     
     
     # 4. Apply GAUSSIAN BLUR filter
-    image = cv2.GaussianBlur(image, (gaussian_blur, gaussian_blur), 0)
+    if gaussian_blur != None:
+        #print ("GAUSSIAN BLUR FILTER APPLIED")
+        image = cv2.GaussianBlur(image, (gaussian_blur, gaussian_blur), 0)
     
     
     # 5. Apply MEDIAN BLUR filter
-    image = cv2.medianBlur(image, median_blur)
+    if median_blur != None:
+        #print ("MEDIAN BLUR FILTER APPLIED")
+        image = cv2.medianBlur(image, median_blur)
     
     
     
@@ -175,7 +180,9 @@ def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussi
     
     
     # 7. If needed apply DILATION morphological operation
-    image = dilate(image, dilation, dilation)
+    if dilation != None:
+        #print ("DILATION MO APPLIED")
+        image = dilate(image, dilation, dilation)
     
     
     # 8. If needed apply OPENING morphological operation
@@ -214,38 +221,52 @@ def get_text_from_image_after_preproccessing(image, image_resizing, blur, gaussi
     text = None
     
     if contour_search == "v1":
-        Cropped = contour_search_v1(gray, image)
+        Cropped = contour_search_v1(file, gray, image)
 
         if Cropped is not None:
             text = get_text_from_image(Cropped)
 
             #return text
-    else:
+    elif contour_search == "v2":
         Countured = contour_search_v2(image)
         
         if Countured is not None:
             text = get_text_from_image(Countured)
 
             #return text
+    else:
+        text = get_text_from_image(image)
     
     if text is not None:
         text = ''.join(e for e in text if e.isalnum())
         print("{} program response: {}".format(program_no, text))
         
-        if program_no == 6:
+        
+        
+        if program_no == 5:
             print ("---------")
 
 
 # Main program
 def main():
-    for image in glob.glob("*.jpg"):
-        print("Filename: {}".format(image))        
+    
+    # Amazon Rekognition initialization
+    #client = boto3.client('rekognition', region_name='eu-west-1', aws_access_key_id='enter_id_here',
+         #aws_secret_access_key='enter_id_here')
+    
+    #bucket = 'enter_id_here'
+    
+    
+    for file in glob.glob("*.jpeg"):
+        print("Filename: {}".format(file))        
         
         # Read original image from folder
-        image = cv2.imread(image)
+        image = cv2.imread(file)
         
         # 1 program
-        text = get_text_from_image_after_preproccessing(image,
+        text = get_text_from_image_after_preproccessing(
+                file,
+                image,
                 image_resizing = 1,
                 blur = 7,
                 gaussian_blur = 9,
@@ -259,29 +280,12 @@ def main():
                 binarization = None,
                 canny_after_mo = False,
                 contour_search = "v1",
-                program_no = 1
-        )
-        
-        # 2 program
-        text = get_text_from_image_after_preproccessing(image,
-                image_resizing = 1,
-                blur = 7,
-                gaussian_blur = 9,
-                median_blur = 9,
-                canny_x = 30,
-                canny_y = 80,
-                dilation = 3,
-                opening = None,
-                closing = None,
-                erosion = None,
-                binarization = None,
-                canny_after_mo = False,
-                contour_search = "v1",
-                program_no = 2
-        )
+                program_no = 1)
 
-        # 3 program
-        text = get_text_from_image_after_preproccessing(image,
+        # 2 program
+        text = get_text_from_image_after_preproccessing(
+                file,
+                image,
                 image_resizing = 2,
                 blur = None,
                 gaussian_blur = 9,
@@ -295,11 +299,12 @@ def main():
                 binarization = None,
                 canny_after_mo = True,
                 contour_search = "v1",
-                program_no = 3
-        )
+                program_no = 2)
         
-        # 4 program
-        text = get_text_from_image_after_preproccessing(image,
+        # 3 program
+        text = get_text_from_image_after_preproccessing(
+                file,
+                image,
                 image_resizing = 1,
                 blur = 7,
                 gaussian_blur = 9,
@@ -313,11 +318,12 @@ def main():
                 binarization = "adaptiveThreshold",
                 canny_after_mo = False,
                 contour_search = "v1",
-                program_no = 4
-        )
+                program_no = 3)
         
-        # 5 program
-        text = get_text_from_image_after_preproccessing(image,
+        # 4 program
+        text = get_text_from_image_after_preproccessing(
+                file,
+                image,
                 image_resizing = 1,
                 blur = 7,
                 gaussian_blur = 9,
@@ -331,11 +337,12 @@ def main():
                 binarization = None,
                 canny_after_mo = False,
                 contour_search = "v1",
-                program_no = 5
-        )
+                program_no = 4)
         
-        # 6 program
-        text = get_text_from_image_after_preproccessing(image,
+        # 5 program
+        text = get_text_from_image_after_preproccessing(
+                file,
+                image,
                 image_resizing = 3,
                 blur = 7,
                 gaussian_blur = 9,
@@ -349,8 +356,16 @@ def main():
                 binarization = "adaptiveThresholdGaussian",
                 canny_after_mo = False,
                 contour_search = "v2",
-                program_no = 6
-        )
-    
-    
+                program_no = 5)
+        
+        
+        # Amazon Rekognition WITHOUT preprocessing
+        #response = client.detect_text(Image={'S3Object':{'Bucket':bucket,'Name':file}})
+        #textDetections = response['TextDetections']
+
+        #for text in textDetections:
+            #print ('Possible car number:' + text['DetectedText'])
+
+
+
 main()
